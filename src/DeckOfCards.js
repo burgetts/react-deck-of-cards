@@ -1,33 +1,62 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef,  } from 'react';
 import axios from 'axios';
 import Card from './Card'
-import uuid from 'react-uuid';
-
-const BASE_URL = 'https://deckofcardsapi.com/api/deck'
+import './DeckOfCards.css'
 
 const DeckOfCards = () => {
 
-    let [deckId, setDeckId] = useState(null)
-    let [drawnCards, setDrawnCards] = useState([])
+    let [cardsLeft, setCardsLeft] = useState()
+    let [shownCards, setShownCards] = useState([])
+    let [drawing, setDrawing] = useState(false)
+    const timerId = useRef(null)
 
-    const drawCard = () => {
-        axios.get(`${BASE_URL}/${deckId}/draw/?count=1`).then(res => setDrawnCards([...drawnCards, {id: uuid(), image: res.data.cards[0].image, name: `${res.data.cards[0].value} of ${res.data.cards[0].suit}`, remaining: res.data.remaining}]))
-    }
-
-    // shuffle deck once to get deck id
+    // get all cards on load
     useEffect(() => {
-       axios.get(`${BASE_URL}/new/shuffle/`).then(res => setDeckId(res.data.deck_id))
+       axios.get('https://deckofcardsapi.com/api/deck/new/draw/?count=52').then(res => setCardsLeft(res.data.cards))
     }, [])
 
+    // whenever drawing changes, start timer and call draw card every second
+    useEffect(() => {
+        if (drawing === true) {
+            timerId.current = setInterval(() => {
+                drawCard()
+            }, 1000);
+    }
+        return function cleanUpClearTimer() {
+        clearInterval(timerId.current);
+        timerId.current = null
+        };
+    }, [drawing]);
 
-    // want to make an api call to get a new card each time the button is clicked
-    // when deck.remaining is 0, send an alert saying no cards remaining
+    function toggleDraw() {
+       if (drawing === true){
+        setDrawing(false)
+       }
+       else {setDrawing(true)}
+    }
+
+    /* Choose card from cardsLeft to show */
+    function drawCard() {
+        if (cardsLeft.length !== 0) { 
+            const newCard = cardsLeft[Math.floor(Math.random()*cardsLeft.length)]
+            setCardsLeft(cardsLeft.filter(card => card.code !== newCard.code))
+            setShownCards([...shownCards, {...newCard, angle: Math.floor(Math.random() * (180))}])
+        }
+        else {
+            alert('Error: No cards remaining.')
+            toggleDraw()
+        }
+    }
+
     return (
-        <>
-            {deckId ? <button onClick={drawCard}>Draw A Card</button> : 'Loading...'}
-            {drawnCards.map(card => <Card image={card.image} key={card.id} remaining={card.remaining} />)}
-        </>
+        <div className="DeckOfCards">
+            {cardsLeft ? <button className="DeckOfCards-button" onClick={toggleDraw}> {drawing === true ? 'Stop Drawing' : 'Start Drawing'} </button> : 'Loading...'}
+            <span>
+                {shownCards.map(card=> <Card image={card.image} key={card.code} angle = {card.angle}/>)} 
+            </span>
+        </div>
     )
 }
 
 export default DeckOfCards;
+

@@ -1,11 +1,15 @@
 import React from 'react';
+import './Card.css'
 
-const Card = ({image, remaining}) => {
+const Card = ({image, angle}) => {
     return (
-        <div>
-            {remaining === 0 ? alert('Error: No cards remaining') : <img alt="card" src={image}></img>}
+     
+        <div className="Card" style={{transform: `rotate(${angle}deg)`}} >
+           <img alt="card" src={image}></img>
         </div>
     )
 }
 
 export default Card;
+
+
